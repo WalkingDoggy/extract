@@ -1,0 +1,50 @@
+import pandas as pd
+import os
+from tqdm import tqdm
+
+# 定义文件路径
+excel_file_path = r'筛选出来点的excel的路径'
+csv_file_path = r'hydrochemistry在电脑的路径（csv文件）'
+output_file_path = r'输出excel的位置（自己事先创建的excel的路径）'
+
+# 检查文件是否存在
+if not os.path.exists(excel_file_path):
+    print(f"文件 {excel_file_path} 不存在。")
+    exit()
+
+if not os.path.exists(csv_file_path):
+    print(f"文件 {csv_file_path} 不存在。")
+    exit()
+
+# 读取Excel和CSV文件
+try:
+    excel_data = pd.read_excel(excel_file_path)
+    csv_data = pd.read_csv(csv_file_path, encoding='ISO-8859-1')
+except Exception as e:
+    print(e)
+    print("请确认文件路径和编码格式无误。")
+    exit()
+
+# 打印前几行以确认数据是否正确读取
+print(excel_data.head())
+print(csv_data.head())
+
+# 初始化一个空的DataFrame用于存储匹配的行
+matched_rows = pd.DataFrame()
+
+# 遍历excel_data的第二列（索引1），并显示进度条
+for value in tqdm(excel_data.iloc[:, 1], desc="Processing"):
+    # 查找csv_data的第一列（索引0）中是否有匹配的值
+    matching_rows = csv_data[csv_data.iloc[:, 0] == value]
+    if not matching_rows.empty:
+        # 将匹配的行添加到matched_rows中
+        matched_rows = pd.concat([matched_rows, matching_rows], ignore_index=True)
+
+# 将匹配的行写入新的Excel文件中
+try:
+    with pd.ExcelWriter(output_file_path, engine='openpyxl') as writer:
+        matched_rows.to_excel(writer, sheet_name='Sheet1', index=False)
+    print("Processing complete. Check the output file for results.")
+except Exception as e:
+    print(e)
+    print("保存文件时出错，请确认输出路径是否正确。")
